@@ -1,2 +1,0 @@
-[console_scripts]
-raceline-gui = spatial_trajopt_racing.gui:main
