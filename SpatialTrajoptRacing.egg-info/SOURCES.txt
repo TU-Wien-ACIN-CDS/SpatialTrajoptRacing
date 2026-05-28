@@ -1,0 +1,13 @@
+README.md
+pyproject.toml
+SpatialTrajoptRacing.egg-info/PKG-INFO
+SpatialTrajoptRacing.egg-info/SOURCES.txt
+SpatialTrajoptRacing.egg-info/dependency_links.txt
+SpatialTrajoptRacing.egg-info/entry_points.txt
+SpatialTrajoptRacing.egg-info/requires.txt
+SpatialTrajoptRacing.egg-info/top_level.txt
+spatial_trajopt_racing/__init__.py
+spatial_trajopt_racing/config.py
+spatial_trajopt_racing/gui.py
+spatial_trajopt_racing/optimizer.py
+spatial_trajopt_racing/utils.py

@@ -1,0 +1,26 @@
+dist_scaling: 2
+friction_scaling: 2
+nurbs:
+  eps: 1.0e-06
+  n_DOF: 2
+  n_deriv: 3
+  p: 3
+  n_ctrl: 16
+  s_smooth: 0.1
+optim:
+  maxiter: 1000
+  popsize: 45
+  sigma_P: 0.55
+  sigma_U: 0.0015
+  sigma_W: 0.05
+  tolfun: 0.0001
+  tolfunhist: 0.0001
+  verbose: -3
+  u_eval: 250
+vehicle:
+  a_max_lat: 15.0
+  a_max_long: 15.0
+  car_width: 0.3
+  delta_max: 0.4189
+  v_max: 15.0
+  wheelbase: 0.325

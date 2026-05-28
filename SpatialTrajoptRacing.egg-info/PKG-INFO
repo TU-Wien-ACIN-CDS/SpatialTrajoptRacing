@@ -1,0 +1,213 @@
+Metadata-Version: 2.4
+Name: SpatialTrajoptRacing
+Version: 0.1.0
+Summary: A brief description of your SpatialTrajoptRacing package
+Author-email: Alexander Wachter <wachter@acin.tuwien.ac.at>, Alexander Willert <willert@acin.tuwien.ac.at>, Marc-Philip Ecker <ecker@acin.tuwien.ac.at>, Christian Hartl-Nesic <hartl@acin.tuwien.ac.at>
+Keywords: optimization,gui,spatial-trajopt-racing
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.8
+Description-Content-Type: text/markdown
+Requires-Dist: numpy==1.26.4
+Requires-Dist: matplotlib
+Requires-Dist: opencv-python
+Requires-Dist: pyyaml
+Requires-Dist: scipy
+Requires-Dist: scikit-image
+Requires-Dist: splinepy
+Requires-Dist: cma
+Requires-Dist: pillow
+Requires-Dist: tqdm
+
+# Spatial Trajectory optimization
+
+**Time-optimal racing line generation for autonomous vehicles.**
+
+Our proposed optimization computes the raceling around a track given vehicle dynamic constraints. It represents the racing line as a closed-loop NURBS curve and uses CMA-ES to jointly optimize the control points, weights, and knot vectors — minimizing lap time while respecting collision, curvature, and dynamic limits.
+
+Designed for small-scale autonomous racing platforms (F1Tenth), but applicable to any vehicle with a known occupancy grid map and dynamic parameters.
+
+---
+
+## Features
+
+- Interactive GUI for drawing, fitting, and optimizing racing lines
+- Automatic centerline generation from occupancy grid images
+- NURBS-based raceline representation (closed-loop, C² continuous)
+- CMA-ES optimizer with lap time objective and physics constraints
+- Velocity profile visualization along the optimized path
+- Export optimized racelines as JSON
+- Pre-built track maps (F1 Austria, Levine, Operngasse 9, and more)
+
+---
+
+## Installation
+
+```bash
+pip install -e .
+```
+
+---
+
+## Quick Start
+
+Launch the GUI with a track map:
+
+```bash
+raceline-gui maps/f1_aut.png
+```
+
+Or with a custom configuration:
+
+```bash
+raceline-gui maps/f1_aut.png --config config/config.yaml
+```
+
+You can also run it directly as a module:
+
+```bash
+python -m spatial_trajopt_racing.gui maps/f1_aut.png
+```
+
+---
+
+## GUI Workflow
+
+The GUI shows the track map on the left and control buttons on the right.
+
+**Drawing control points:**
+- Left-click on the map to place control points
+- Right-click near a point to delete it
+
+**Buttons:**
+
+| Button | Action |
+|--------|--------|
+| **Centerline** | Auto-generate control points from the track image using distance transform + skeletonization |
+| **Spline** | Fit a cubic B-spline through the current control points (closed loop) |
+| **Optimize** | Run CMA-ES optimization in the background; the raceline updates live every 50 iterations |
+| **Clear** | Remove all points and curves |
+| **Save JSON** | Export the optimized spline (control points, weights, knot vectors) to a JSON file |
+
+**Typical workflow:**
+1. Click **Centerline** to auto-detect a starting path, or click points manually
+2. Click **Spline** to fit a curve through the points
+3. Click **Optimize** to run the optimizer — the line turns color-coded by velocity as it improves
+4. Click **Save JSON** to export the result
+
+---
+
+## Configuration
+
+The optimizer is configured via a YAML file. Default values are shown below.
+
+```yaml
+vehicle:
+  delta_max: 0.4189   # Max steering angle (rad)
+  wheelbase: 0.325    # Wheelbase (m)
+  v_max: 15.0         # Max velocity (m/s)
+  a_max_long: 15.0    # Max longitudinal acceleration (m/s²)
+  a_max_lat: 15.0     # Max lateral acceleration (m/s²)
+  car_width: 0.25     # Half-width for collision checking (m)
+
+nurbs:
+  n_ctrl: 15          # Number of control points
+  p: 3                # Spline degree (cubic)
+  s_smooth: 0.1       # Initial smoothing factor
+  u_eval: 250         # Evaluation points along the spline
+
+optim:
+  sigma_P: 0.55       # Initial std dev for control point perturbation
+  sigma_W: 0.05       # Initial std dev for weight perturbation
+  sigma_U: 0.0015     # Initial std dev for knot vector perturbation
+  popsize: 45         # CMA-ES population size
+  maxiter: 1000       # Max optimization iterations
+  tolfun: 1.0e-4      # Fitness convergence tolerance
+```
+
+---
+
+## Optimization Details
+
+### Objective
+
+Minimize lap time $T$ subject to:
+
+- **Velocity:** $v \leq v_{\max}$
+- **Lateral acceleration:** $|a_{\perp}| \leq a_{\perp,\text{max}}$ (determines cornering speed)
+- **Longitudinal acceleration:** $|a_{\parallel}| \leq a_{\parallel,\text{max}}$ (braking/acceleration limits)
+
+### Penalty Terms
+
+- **Collision penalty** (weight $10^6$): Applied whenever the spline passes within $w_{\text{car}}$ meters of a wall
+- **Curvature penalty** (weight $10^3$): Applied when curvature exceeds the vehicle's minimum turning radius $\dfrac{l_b}{\tan(\delta_{\max})}$
+
+### Raceline Representation
+
+The raceline is a closed-loop NURBS curve of degree 3. The optimizer simultaneously searches over:
+
+- **Control point positions** $(x, y)$
+- **Rational weights** (shape the curve toward or away from control points)
+- **Internal knot vector values** (control the parameterization of the curve)
+
+$C^2$ continuity at the loop closure is enforced analytically before each evaluation.
+
+---
+
+## Included Tracks
+
+| Track | Description |
+|-------|-------------|
+| `f1_aut` | Formula 1 Austria |
+| `levine` | Levine Hall indoor track |
+| `Operngasse_9` | Operngasse 9, Vienna |
+| `wall1` | Wall test track |
+
+---
+
+
+
+## Output Format
+
+Saved JSON files contain the optimized NURBS parameters:
+
+```json
+{
+  "control_points": [[x0, y0], [x1, y1], ...],
+  "weights": [w0, w1, ...],
+  "knot_vector": [u0, u1, ...]
+}
+```
+
+These can be loaded with `splinepy` to reconstruct the full raceline and evaluate positions, derivatives, and curvature at any parameter value.
+
+---
+
+
+## Citation
+
+If you use this work, please cite:
+
+```bibtex
+@article{wachter2026spatially,
+  title={Spatially-Aware Adaptive Trajectory Optimization with Controller-Guided Feedback for Autonomous Racing},
+  author={Wachter, Alexander and Willert, Alexander and Ecker, Marc-Philip and Hartl-Nesic, Christian},
+  journal={arXiv preprint arXiv:2602.15642},
+  year={2026}
+}
+```
+
+---
+
+## ROS Integration
+
+A ROS node for deploying optimized racelines on a real vehicle is not yet publicly available. If you are interested, please open a [GitHub issue](../../issues).
+
+---
+
+## Credits
+
+Track maps provided by the [CPS-TUWien](https://github.com/CPS-TUWien/f1tenth_maps).
+
+---
